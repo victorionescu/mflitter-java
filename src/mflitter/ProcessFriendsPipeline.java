@@ -38,7 +38,7 @@ public class ProcessFriendsPipeline {
   }
 
   public static void main(String[] args) {
-    while (true) {
+    for (int step = 0; step < 10; step += 1) {
       try {
         Thread.sleep(5000);
       } catch (InterruptedException e) { }
