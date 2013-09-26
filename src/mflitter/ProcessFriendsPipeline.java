@@ -1,5 +1,6 @@
 package mflitter;
 
+import mflitter.db.Database;
 import twitter4j.*;
 import twitter4j.auth.AccessToken;
 import twitter4j.conf.ConfigurationBuilder;
@@ -15,26 +16,9 @@ import mflitter.db.TokenIterator;
 
 
 public class ProcessFriendsPipeline {
-  public static void setNextCursor(Connection dbConnection, long jobId, long nextCursor) {
-    Statement updateQueryStatement = null;
-
-    try {
-      updateQueryStatement = dbConnection.createStatement();
-      String updateQuery = "UPDATE `friends_jobs` SET `next_cursor`=" + nextCursor +
-          " WHERE `id`=" + jobId;
-      System.out.println(updateQuery);
-      updateQueryStatement.executeUpdate(updateQuery);
-    } catch (SQLException e) {
-      System.out.println("SQLException: " + e.getMessage());
-      System.out.println("SQLState: " + e.getSQLState());
-      System.out.println("VendorError: " + e.getErrorCode());
-    } finally {
-      if (updateQueryStatement != null) {
-        try {
-          updateQueryStatement.close();
-        } catch (SQLException e) { }
-      }
-    }
+  public static void setNextCursor(Database database, long jobId, long nextCursor) {
+    database.updateQuery( "UPDATE `friends_jobs` SET `next_cursor`=" + nextCursor +
+        " WHERE `id`=" + jobId);
   }
 
   public static void main(String[] args) {
@@ -47,11 +31,13 @@ public class ProcessFriendsPipeline {
       ResultSet resultSet = null;
 
       try {
-        Connection dbConnection = DriverManager.getConnection("jdbc:mysql://localhost/mflitter?" +
+        Database database = new Database();
+
+        /*Connection dbConnection = DriverManager.getConnection("jdbc:mysql://localhost/mflitter?" +
             "user=root&password=my38008s_52");
 
-        queryStatement = dbConnection.createStatement();
-        resultSet = queryStatement.executeQuery(
+        queryStatement = dbConnection.createStatement();    */
+        resultSet = database.selectQuery(
             "SELECT `friends_jobs`.*, `users`.`access_token`, `users`.`access_token_secret`" +
                 "FROM `friends_jobs`,`users` WHERE `users`.`id`=`friends_jobs`.`user_id` AND " +
                 "`friends_jobs`.`next_cursor` != 0 " +
@@ -73,9 +59,8 @@ public class ProcessFriendsPipeline {
 
 
           ConfigurationBuilder configurationBuilder = new ConfigurationBuilder();
-          configurationBuilder.setOAuthConsumerKey("uGV0PkC1YSaTcf0I4kt0sg");
-          configurationBuilder.setOAuthConsumerSecret(
-              "cY2IRClYHy4uG08EjOH59BnX59tgibfqDOBLGHZB3CQ");
+          configurationBuilder.setOAuthConsumerKey(Configuration.CONSUMER_KEY);
+          configurationBuilder.setOAuthConsumerSecret(Configuration.CONSUMER_SECRET);
           configurationBuilder.setOAuthAccessToken(accessToken);
           configurationBuilder.setOAuthAccessTokenSecret(accessTokenSecret);
 
@@ -86,33 +71,23 @@ public class ProcessFriendsPipeline {
             PagableResponseList<User> friends = twitter.getFriendsList(screenName, nextCursor);
 
             for (User user : friends) {
-              Statement insertQueryStatement = null;
-              try {
-                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                String insertQuery =
+              //Statement insertQueryStatement = null;
+
+              SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+              String insertQuery =
                     "INSERT INTO friends(screen_name, user_id, created_at, default_profile, " +
                     "default_profile_image, profile_image_url) VALUES('" +
                     user.getScreenName() + "', " + userId + ", '" +
                     dateFormat.format(user.getCreatedAt()) + "', " +
                     user.defaultProfile() + ", " + user.defaultProfileImage() +
                     ", '" + user.getProfileImageURL() + "')";
-                System.out.println(insertQuery);
+                //System.out.println(insertQuery);
                 //throw new SQLException();
-                insertQueryStatement = dbConnection.createStatement();
-                insertQueryStatement.executeUpdate(insertQuery);
-                setNextCursor(dbConnection, jobId, friends.getNextCursor());
+                /*insertQueryStatement = dbConnection.createStatement();
+                insertQueryStatement.executeUpdate(insertQuery);  */
 
-              } catch (SQLException e) {
-                System.out.println("SQLException: " + e.getMessage());
-                System.out.println("SQLState: " + e.getSQLState());
-                System.out.println("VendorError: " + e.getErrorCode());
-              } finally {
-                if (insertQueryStatement != null) {
-                  try {
-                    insertQueryStatement.close();
-                  } catch (SQLException e) { }
-                }
-              }
+              database.updateQuery(insertQuery);
+              setNextCursor(database, jobId, friends.getNextCursor());
             }
           } catch (TwitterException e) {
             System.out.println("Could not fetch results from API.");
