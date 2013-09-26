@@ -37,9 +37,8 @@ public class ProcessUnfollowsPipeline {
         String accessTokenSecret = friendsSet.getString("access_token_secret");
 
         ConfigurationBuilder configurationBuilder = new ConfigurationBuilder();
-        configurationBuilder.setOAuthConsumerKey("uGV0PkC1YSaTcf0I4kt0sg");
-        configurationBuilder.setOAuthConsumerSecret(
-            "cY2IRClYHy4uG08EjOH59BnX59tgibfqDOBLGHZB3CQ");
+        configurationBuilder.setOAuthConsumerKey(Configuration.CONSUMER_KEY);
+        configurationBuilder.setOAuthConsumerSecret(Configuration.CONSUMER_SECRET);
         configurationBuilder.setOAuthAccessToken(accessToken);
         configurationBuilder.setOAuthAccessTokenSecret(accessTokenSecret);
 
